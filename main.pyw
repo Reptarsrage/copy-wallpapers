@@ -1,33 +1,75 @@
-import geocoder
-import requests
-import subprocess
+import praw
+from pathlib import Path
+import urllib.request
+import random
+import os
 import sys
-from datetime import datetime, timezone
 import logger
+from dotenv import load_dotenv
+
+class Wallpaper:
+    def __init__(self, id, subreddit, title, url, width, height):
+        self.id = id
+        self.subreddit = subreddit
+        self.title = title
+        self.url = url
+        self.width = width
+        self.height = height
+        self.ext = url.split('?')[0].split('.')[-1]
+
+    def filename(self):
+        filename = f'{self.title} [{self.subreddit}] [{self.id}]'
+        filename = "".join([c for c in filename if c.isalpha()
+                           or c.isdigit() or c == ' ']).rstrip()
+        return f'{filename}.{self.ext}'
 
 try:
-    # Get current location
-    geoResponse = geocoder.ip('me')
-    logger.info(f'Current location: {geoResponse.latlng}')
+    load_dotenv()  # take environment variables from .env.
 
-    # Fetch current sunset/sunrise
-    url = f'https://api.sunrise-sunset.org/json?lat={geoResponse.lat}&lng={geoResponse.lng}&date=today&formatted=0'
-    response = requests.get(url).json()
-    sunset = datetime.fromisoformat(response['results']['sunset'])
-    sunrise = datetime.fromisoformat(response['results']['sunrise'])
-    now = datetime.now(tz=timezone.utc)
-    logger.info(f'Sunset: {sunset} · Sunrise: {sunrise} · Now: {now}')
+    # Create reddit client
+    logger.info('Authenticating with reddit')
+    reddit = praw.Reddit(
+        client_id=os.getenv('CLIENT_ID'),
+        client_secret=os.getenv('CLIENT_SECRET'),
+        user_agent=os.getenv('USER_AGENT'),
+    )
 
-    # Determine if nighttime
-    useDarkTheme = now > sunset or now < sunrise
-    logger.info(f'Setting dark theme...' if useDarkTheme else 'Setting light theme...')
+    # Define subreddits to check
+    subreddits = ["wallpaper", "wallpapers", "wallpaperdump", "minimalwallpaper", ]
 
-    # Set registry key
-    # reg add HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize /v AppsUseLightTheme /t REG_DWORD /d 0 /f
-    regPath = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize'
-    regValue = '0' if useDarkTheme else '1'
-    subprocess.run(['reg', 'add', regPath, '/v', 'AppsUseLightTheme',
-                   '/t', 'REG_DWORD', '/d', regValue, '/f'])
+    # Fetch wallpapers
+    logger.info(f'Scraping images from {subreddits}')
+    desktopWallpapers = []
+    for submission in reddit.subreddit('+'.join(subreddits)).new(limit=100):
+        if hasattr(submission, 'preview'):
+            images = submission.preview.get("images", [])
+            for image in images:
+                url = image['source']['url']
+                width = image['source']['width']
+                height = image['source']['height']
+                if width > height:
+                    desktopWallpapers.append(Wallpaper(
+                        submission.id, submission.subreddit_name_prefixed, submission.title, url, width, height))
+
+    # Pick random image
+    wallpaper = random.choice(desktopWallpapers)
+    logger.info(f'{wallpaper.url} => {wallpaper.filename()}')
+
+    # Create directory if not exists
+    outDir = os.getenv('OUT_DIR')
+    Path(outDir).mkdir(parents=True, exist_ok=True)
+
+    # Download Image
+    urllib.request.urlretrieve(wallpaper.url, f'{outDir}\\{wallpaper.filename()}')
+
+    # Remove old files if we have too many
+    list_of_files = os.listdir(outDir)
+    full_path = [f'{outDir}\\{name}' for name in list_of_files]
+    if len(list_of_files) > 10:
+        oldest_file = min(full_path, key=os.path.getctime)
+        logger.info(f'Cleaning {oldest_file}')
+        os.remove(oldest_file)
+
 except:
-    logger.error('Unexpected error:', sys.exc_info()[0])
+    logger.error("Unexpected error:", sys.exc_info()[0])
     raise
