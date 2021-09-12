@@ -7,6 +7,7 @@ import sys
 import logger
 from dotenv import load_dotenv
 
+
 class Wallpaper:
     def __init__(self, id, subreddit, title, url, width, height):
         self.id = id
@@ -23,6 +24,7 @@ class Wallpaper:
                            or c.isdigit() or c == ' ']).rstrip()
         return f'{filename}.{self.ext}'
 
+
 try:
     load_dotenv()  # take environment variables from .env.
 
@@ -35,13 +37,14 @@ try:
     )
 
     # Define subreddits to check
-    subreddits = ["wallpaper", "wallpapers", "wallpaperdump", "minimalwallpaper", ]
+    subreddits = ["wallpaper", "wallpapers",
+                  "wallpaperdump", "minimalwallpaper", ]
 
     # Fetch wallpapers
     logger.info(f'Scraping images from {subreddits}')
     desktopWallpapers = []
-    for submission in reddit.subreddit('+'.join(subreddits)).new(limit=100):
-        if hasattr(submission, 'preview'):
+    for submission in reddit.subreddit('+'.join(subreddits)).hot(limit=100):
+        if not submission.over_18 and submission.link_flair_text != 'Request' and hasattr(submission, 'preview'):
             images = submission.preview.get("images", [])
             for image in images:
                 url = image['source']['url']
@@ -60,7 +63,8 @@ try:
     Path(outDir).mkdir(parents=True, exist_ok=True)
 
     # Download Image
-    urllib.request.urlretrieve(wallpaper.url, f'{outDir}\\{wallpaper.filename()}')
+    urllib.request.urlretrieve(
+        wallpaper.url, f'{outDir}\\{wallpaper.filename()}')
 
     # Remove old files if we have too many
     list_of_files = os.listdir(outDir)
