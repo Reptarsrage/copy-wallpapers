@@ -38,13 +38,13 @@ try:
 
     # Define subreddits to check
     subreddits = ["wallpaper", "wallpapers",
-                  "wallpaperdump", "minimalwallpaper", ]
+                  "wallpaperdump", "minimalwallpaper", "animewallpaper" ]
 
     # Fetch wallpapers
     logger.info(f'Scraping images from {subreddits}')
     desktopWallpapers = []
-    for submission in reddit.subreddit('+'.join(subreddits)).hot(limit=100):
-        if not submission.over_18 and submission.link_flair_text != 'Request' and hasattr(submission, 'preview'):
+    for submission in reddit.subreddit('+'.join(subreddits)).hot(limit=200):
+        if not submission.over_18 and submission.link_flair_text not in ['Request', 'Mobile', 'Animated', 'Collection'] and hasattr(submission, 'preview'):
             images = submission.preview.get("images", [])
             for image in images:
                 url = image['source']['url']
@@ -55,6 +55,7 @@ try:
                         submission.id, submission.subreddit_name_prefixed, submission.title, url, width, height))
 
     # Pick random image
+    logger.info(f'Picking one of {len(desktopWallpapers)} files')
     wallpaper = random.choice(desktopWallpapers)
     logger.info(f'{wallpaper.url} => {wallpaper.filename()}')
 
