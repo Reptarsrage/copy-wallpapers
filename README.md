@@ -33,6 +33,7 @@ CLIENT_ID=<REDDIT CLIENT ID>
 CLIENT_SECRET=<REDDIT CLIENT SECRET>
 USER_AGENT=copy-wallpapers/1.0.0 by reptarsrage
 OUT_DIR=D:\Pictures\Wallpapers
+NUM_FILES=20
 ```
 
 > NOTE: To generate Reddit API Creds [see here](https://github.com/reddit-archive/reddit/wiki/OAuth2#getting-started).

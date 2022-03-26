@@ -53,27 +53,35 @@ try:
                 if width > height:
                     desktopWallpapers.append(Wallpaper(
                         submission.id, submission.subreddit_name_prefixed, submission.title, url, width, height))
-
-    # Pick random image
-    logger.info(f'Picking one of {len(desktopWallpapers)} files')
-    wallpaper = random.choice(desktopWallpapers)
-    logger.info(f'{wallpaper.url} => {wallpaper.filename()}')
-
+    
     # Create directory if not exists
     outDir = os.getenv('OUT_DIR')
     Path(outDir).mkdir(parents=True, exist_ok=True)
 
-    # Download Image
-    urllib.request.urlretrieve(
-        wallpaper.url, f'{outDir}\\{wallpaper.filename()}')
+    # Fill folder
+    num_files = int(os.getenv('NUM_FILES'))
+    list_of_files = os.listdir(outDir)
+    while len(list_of_files) < num_files:
+        # Pick random image
+        logger.info(f'Picking one of {len(desktopWallpapers)} files')
+        wallpaper = random.choice(desktopWallpapers)
+        logger.info(f'{wallpaper.url} => {wallpaper.filename()}')
+
+        # Download Image
+        urllib.request.urlretrieve(
+            wallpaper.url, f'{outDir}\\{wallpaper.filename()}')
+        
+        # Recheck folder
+        list_of_files = os.listdir(outDir)
 
     # Remove old files if we have too many
     list_of_files = os.listdir(outDir)
-    full_path = [f'{outDir}\\{name}' for name in list_of_files]
-    if len(list_of_files) > 10:
+    while len(list_of_files) > num_files:
+        full_path = [f'{outDir}\\{name}' for name in list_of_files]
         oldest_file = min(full_path, key=os.path.getctime)
         logger.info(f'Cleaning {oldest_file}')
         os.remove(oldest_file)
+        list_of_files = os.listdir(outDir)
 
 except:
     logger.error("Unexpected error:", sys.exc_info()[0])
