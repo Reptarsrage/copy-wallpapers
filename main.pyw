@@ -50,7 +50,7 @@ try:
                 url = image['source']['url']
                 width = image['source']['width']
                 height = image['source']['height']
-                if width > height:
+                if width > height and width >= 1920 and height >= 1080:
                     desktopWallpapers.append(Wallpaper(
                         submission.id, submission.subreddit_name_prefixed, submission.title, url, width, height))
     
