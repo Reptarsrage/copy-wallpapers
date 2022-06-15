@@ -7,7 +7,6 @@ import sys
 import logger
 from dotenv import load_dotenv
 
-
 class Wallpaper:
     def __init__(self, id, subreddit, title, url, width, height):
         self.id = id
@@ -24,7 +23,45 @@ class Wallpaper:
                            or c.isdigit() or c == ' ']).rstrip()
         return f'{filename}.{self.ext}'
 
+class Cache:
+    def __init__(self):
+        self.filename = "wallpapers.cache"
+        self.limit = 1000
+        self.keys = []
+        self.init = False
 
+    def __exists(self):
+        return os.path.exists(self.filename)
+
+    def __read(self):
+        if self.init:
+            return self.keys
+
+        if self.__exists():
+            with open(self.filename, 'r') as file:
+                self.keys = file.readlines()
+                self.keys = [key.rstrip() for key in self.keys]
+        
+        self.init = True
+        return self.keys
+
+    def __write(self):
+        if not self.init:
+            self.__read()
+
+        with open(self.filename, 'w') as file:
+            file.writelines([key + '\n' for key in self.keys])
+    
+    def has(self, key):
+        keys = self.__read()
+        return key in keys
+    
+    def add(self, key):
+        if not self.has(key):
+            self.keys.append(key) # append key
+            self.keys = self.keys[-self.limit:] # take only most recent keys
+            self.__write()
+    
 try:
     load_dotenv()  # take environment variables from .env.
 
@@ -58,19 +95,30 @@ try:
     outDir = os.getenv('OUT_DIR')
     Path(outDir).mkdir(parents=True, exist_ok=True)
 
+    # Init cache
+    cache = Cache()
+
     # Fill folder
     num_files = int(os.getenv('NUM_FILES'))
+    new_files = int(os.getenv('NEW_FILES'))
     list_of_files = os.listdir(outDir)
-    while len(list_of_files) < num_files:
+    while len(desktopWallpapers) > 0 and len(list_of_files) < num_files + new_files:
         # Pick random image
         logger.info(f'Picking one of {len(desktopWallpapers)} files')
-        wallpaper = random.choice(desktopWallpapers)
+        wallpaper = desktopWallpapers.pop(random.randrange(len(desktopWallpapers)))
         logger.info(f'{wallpaper.url} => {wallpaper.filename()}')
+
+        # Check if previously downloaded
+        if cache.has(wallpaper.id):
+            continue
 
         # Download Image
         urllib.request.urlretrieve(
             wallpaper.url, f'{outDir}\\{wallpaper.filename()}')
         
+        # Add to cache
+        cache.add(wallpaper.id)
+
         # Recheck folder
         list_of_files = os.listdir(outDir)
 
