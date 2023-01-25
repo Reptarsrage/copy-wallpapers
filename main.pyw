@@ -75,7 +75,7 @@ try:
 
     # Define subreddits to check
     subreddits = ["wallpaper", "wallpapers",
-                  "wallpaperdump", "minimalwallpaper", "animewallpaper" ]
+                  "wallpaperdump", "minimalwallpaper"]
 
     # Fetch wallpapers
     logger.info(f'Scraping images from {subreddits}')
