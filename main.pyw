@@ -80,7 +80,8 @@ try:
     # Fetch wallpapers
     logger.info(f'Scraping images from {subreddits}')
     desktopWallpapers = []
-    for submission in reddit.subreddit('+'.join(subreddits)).hot(limit=200):
+    for submission in reddit.subreddit('+'.join(subreddits)).hot(limit=50):
+        # accessing submission.preview will make an additional API call
         if not submission.over_18 and submission.link_flair_text not in ['Request', 'Mobile', 'Animated', 'Collection'] and hasattr(submission, 'preview'):
             images = submission.preview.get("images", [])
             for image in images:
