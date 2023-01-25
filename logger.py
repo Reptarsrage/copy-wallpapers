@@ -16,6 +16,14 @@ logHandler.setFormatter(formatter)
 logger.addHandler(logHandler)
 logger.addHandler(logging.StreamHandler())
 
+# Add logger to PRAW
+handler = logging.StreamHandler()
+handler.setLevel(logging.DEBUG)
+for logger_name in ("praw", "prawcore"):
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
+
 def info(str):
     logger.info(str)
 
